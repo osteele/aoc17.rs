@@ -6,6 +6,7 @@
 // learning objectives better than those.
 
 use std::fs::File;
+use std::result::Result;
 use std::io::prelude::*;
 
 fn main() {
@@ -13,7 +14,7 @@ fn main() {
     let mut f = File::open(filename).expect("file not found");
     let mut source = String::new();
     f.read_to_string(&mut source).expect("can't read the file");
-    let ast = parse(&source);
+    let ast = parse(&source).unwrap();
     println!("Part 1: {}", ast.score());
     println!("Part 2: {}", ast.garbage_len());
 }
@@ -51,6 +52,21 @@ impl AST {
     }
 }
 
+#[derive(Debug)]
+struct ParseError {
+    message: String
+}
+
+impl ParseError {
+    fn result<T>(msg: &str) -> Result<T, ParseError> {
+        Err(ParseError{message: msg.to_string()})
+    }
+
+    fn format<T>(msg: String) -> Result<T, ParseError> {
+        Err(ParseError{message: msg})
+    }
+}
+
 fn garbage(iter: &mut std::str::Chars) -> AST {
     let mut string = String::new();
     while let Some(c) = iter.next() {
@@ -80,26 +96,24 @@ fn group(iter: &mut std::str::Chars) -> AST {
     return AST::Group(children)
 }
 
-fn parse(src: &str) -> AST {
+fn parse(src: &str) -> Result<AST, ParseError> {
     let mut iter = src.chars();
     return match iter.next() {
-        Some('<') => garbage(&mut iter),
-        Some('{') => group(&mut iter),
-        Some(c) => panic!("invalid string: expected '<' or '{{', found {:?}", c),
-        None => panic!("invalid string: expected non-empty string")
+        Some('<') => Ok(garbage(&mut iter)),
+        Some('{') => Ok(group(&mut iter)),
+        Some(c) => ParseError::format(format!("invalid string: expected '<' or '{{', found {:?}", c)),
+        None => ParseError::result("invalid string: expected non-empty string")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    // TODO test cases for error conditions
-    // TODO learn macros https://github.com/BurntSushi/fst/blob/master/src/raw/tests.rs#L111-L158
 
     #[test]
     fn recognizes_garbage() {
         for t in GARBAGE_TESTS {
-            match parse(t.source) {
+            match parse(t.source).unwrap() {
                 AST::Garbage(_)=> (),
                 node => panic!("Expected Garbage; received {:?}", node)
             }
@@ -109,7 +123,7 @@ mod tests {
     #[test]
     fn recognizes_groups() {
         for t in GROUP_TESTS {
-            match parse(t.source) {
+            match parse(t.source).unwrap() {
                 AST::Group(_) => (),
                 node => panic!("Expected Group; received {:?}", node)
             }
@@ -117,25 +131,37 @@ mod tests {
     }
 
     #[test]
-    fn counts_groups() {
+    fn syntax_errors() {
+        const SYNTAX_ERROR_TESTS: &'static [&'static str] = &[
+            "",
+            "x",
+        ];
+        for s in SYNTAX_ERROR_TESTS {
+            let result = parse(s);
+            assert!(result.is_err(), "{} -> {:?}", s, result);
+        }
+    }
+
+    #[test]
+    fn count_groups() {
         for t in GROUP_TESTS {
-            let node = parse(t.source);
+            let node = parse(t.source).unwrap();
             assert_eq!(node.count_groups(), t.count, "in {}", t.source);
         }
     }
 
     #[test]
-    fn computes_scores() {
+    fn scores() {
         for t in SCORE_TESTS {
-            let node = parse(t.source);
+            let node = parse(t.source).unwrap();
             assert_eq!(node.score(), t.score, "in {} {:?}", t.source, node);
         }
     }
 
     #[test]
-    fn computes_garbage_len() {
+    fn garbage_len() {
         for t in GARBAGE_TESTS {
-            let node = parse(t.source);
+            let node = parse(t.source).unwrap();
             assert_eq!(node.garbage_len(), t.length, "in {} {:?}", t.source, node);
         }
     }
