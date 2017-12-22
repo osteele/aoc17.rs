@@ -128,8 +128,8 @@ mod tests {
     fn recognizes_garbage() {
         for t in GARBAGE_TESTS {
             match parse(t.source).unwrap() {
-                AST::Garbage(_)=> (),
-                node => panic!("Expected Garbage; received {:?}", node)
+                AST::Garbage(_) => (),
+                ast => panic!("Expected Garbage; received {:?}", ast)
             }
         }
     }
@@ -139,7 +139,7 @@ mod tests {
         for t in GROUP_TESTS {
             match parse(t.source).unwrap() {
                 AST::Group(_) => (),
-                node => panic!("Expected Group; received {:?}", node)
+                ast => panic!("Expected Group; received {:?}", ast)
             }
         }
     }
@@ -168,24 +168,24 @@ mod tests {
     #[test]
     fn count_groups() {
         for t in GROUP_TESTS {
-            let node = parse(t.source).unwrap();
-            assert_eq!(node.count_groups(), t.count, "in {}", t.source);
+            let ast = parse(t.source).unwrap();
+            assert_eq!(ast.count_groups(), t.count, "in {}", t.source);
         }
     }
 
     #[test]
     fn scores() {
         for t in SCORE_TESTS {
-            let node = parse(t.source).unwrap();
-            assert_eq!(node.score(), t.score, "in {} {:?}", t.source, node);
+            let ast = parse(t.source).unwrap();
+            assert_eq!(ast.score(), t.score, "in {} {:?}", t.source, ast);
         }
     }
 
     #[test]
     fn garbage_len() {
         for t in GARBAGE_TESTS {
-            let node = parse(t.source).unwrap();
-            assert_eq!(node.garbage_len(), t.length, "in {} {:?}", t.source, node);
+            let ast = parse(t.source).unwrap();
+            assert_eq!(ast.garbage_len(), t.length, "in {} {:?}", t.source, ast);
         }
     }
 
@@ -234,4 +234,5 @@ mod tests {
         ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
         ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
         ScoreTest { source: "{{<a!>},{<a!>},{<a!>},{<ab>}}", score: /* 1 + 2 = */ 3 },
-    ];}
+    ];
+}
