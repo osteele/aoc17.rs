@@ -5,6 +5,7 @@
 // or a state machine and a couple of accumulators. This strategy meets my
 // learning objectives better than those.
 
+use std::fmt;
 use std::fs::File;
 use std::result::Result;
 use std::io::prelude::*;
@@ -14,7 +15,12 @@ fn main() {
     let mut f = File::open(filename).expect("file not found");
     let mut source = String::new();
     f.read_to_string(&mut source).expect("can't read the file");
-    let ast = parse(&source).unwrap();
+    let result = parse(&source);
+    if let Err(err) = result {
+        println!("syntax error: {}", err);
+        return;
+    }
+    let ast = result.unwrap();
     println!("Part 1: {}", ast.score());
     println!("Part 2: {}", ast.garbage_len());
 }
@@ -67,7 +73,15 @@ impl ParseError {
     }
 }
 
-fn garbage(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+type ParseResult = Result<AST, ParseError>;
+
+fn garbage(iter: &mut std::str::Chars) -> ParseResult {
     let mut string = String::new();
     while let Some(c) = iter.next() {
         match c {
@@ -82,7 +96,7 @@ fn garbage(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
     ParseError::result("unterminated '<'")
 }
 
-fn group(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
+fn group(iter: &mut std::str::Chars) -> ParseResult {
     let mut children = Vec::new();
     while let Some(c) = iter.next() {
         match c {
@@ -96,7 +110,7 @@ fn group(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
     ParseError::result("unterminated '{'")
 }
 
-fn parse(src: &str) -> Result<AST, ParseError> {
+fn parse(src: &str) -> ParseResult {
     let mut iter = src.chars();
     match iter.next() {
         Some('<') => garbage(&mut iter),
