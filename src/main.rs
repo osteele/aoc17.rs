@@ -14,14 +14,41 @@ fn main() {
     let mut source = String::new();
     f.read_to_string(&mut source).expect("can't read the file");
     let ast = parse(&source);
-    println!("Part 1: {}", score(&ast));
-    println!("Part 2: {}", garbage_len(&ast));
+    println!("Part 1: {}", ast.score());
+    println!("Part 2: {}", ast.garbage_len());
 }
 
 #[derive(Debug)]
 enum AST {
     Group(Vec<AST>),
     Garbage(String),
+}
+
+impl AST {
+    #[allow(dead_code)]
+    fn count_groups(&self) -> usize {
+        match self {
+            &AST::Group(ref children) => 1 + children.iter().map(AST::count_groups).sum::<usize>(),
+            _ => 0
+        }
+    }
+
+    fn score(&self) -> usize {
+        fn depths(node: &AST, i: usize) -> usize {
+            match node {
+                &AST::Group(ref children) => i + children.iter().map(|n| depths(n, i+1)).sum::<usize>(),
+                _ => 0
+            }
+        }
+        return depths(self, 1);
+    }
+
+    fn garbage_len(&self) -> usize {
+        match self {
+            &AST::Garbage(ref s) => s.len(),
+            &AST::Group(ref children) => children.iter().map(AST::garbage_len).sum::<usize>(),
+        }
+    }
 }
 
 fn garbage(iter: &mut std::str::Chars) -> AST {
@@ -63,31 +90,6 @@ fn parse(src: &str) -> AST {
     }
 }
 
-#[allow(dead_code)]
-fn count_groups(node: &AST) -> usize {
-    match node {
-        &AST::Group(ref children) => 1 + children.iter().map(count_groups).sum::<usize>(),
-        _ => 0
-    }
-}
-
-fn score(node: &AST) -> usize {
-    fn depths(node: &AST, i: usize) -> usize {
-        match node {
-            &AST::Group(ref children) => i + children.iter().map(|n| depths(n, i+1)).sum::<usize>(),
-            _ => 0
-        }
-    }
-    return depths(node, 1);
-}
-
-fn garbage_len(node: &AST) -> usize {
-    match node {
-        &AST::Garbage(ref s) => s.len(),
-        &AST::Group(ref children) => children.iter().map(garbage_len).sum::<usize>(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,7 +120,7 @@ mod tests {
     fn counts_groups() {
         for t in GROUP_TESTS {
             let node = parse(t.source);
-            assert_eq!(count_groups(&node), t.count, "in {}", t.source);
+            assert_eq!(node.count_groups(), t.count, "in {}", t.source);
         }
     }
 
@@ -126,7 +128,7 @@ mod tests {
     fn computes_scores() {
         for t in SCORE_TESTS {
             let node = parse(t.source);
-            assert_eq!(score(&node), t.score, "in {} {:?}", t.source, node);
+            assert_eq!(node.score(), t.score, "in {} {:?}", t.source, node);
         }
     }
 
@@ -134,7 +136,7 @@ mod tests {
     fn computes_garbage_len() {
         for t in GARBAGE_TESTS {
             let node = parse(t.source);
-            assert_eq!(garbage_len(&node), t.length, "in {} {:?}", t.source, node);
+            assert_eq!(node.garbage_len(), t.length, "in {} {:?}", t.source, node);
         }
     }
 
