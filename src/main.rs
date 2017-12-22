@@ -1,5 +1,10 @@
 // http://adventofcode.com/2017/day/9
 
+// This implementation uses a recursive-descent parser. This particular problem
+// can be more easily solved using regular expressions (see my Python solution)
+// or a state machine and a couple of accumulators. This strategy meets my
+// learning objectives better than those.
+
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -28,10 +33,8 @@ fn garbage(iter: &mut std::str::Chars) -> AST {
                 None => panic!("unexpected end of string after '!'")
             },
             '>' => return AST::Garbage(string),
-            _ => ()
+            _ => string.push(c)
         }
-        // TODO can this be done in the match?
-        if c != '!' { string.push(c); }
     }
     panic!("invalid garbage string: unterminated '<'")
 }
@@ -93,8 +96,8 @@ mod tests {
 
     #[test]
     fn recognizes_garbage() {
-        for s in GARBAGE_TESTS {
-            match parse(s) {
+        for t in GARBAGE_TESTS {
+            match parse(t.source) {
                 AST::Garbage(_)=> (),
                 node => panic!("Expected Garbage; received {:?}", node)
             }
@@ -129,19 +132,25 @@ mod tests {
 
     #[test]
     fn computes_garbage_len() {
-        for t in GARBAGE_LEN_TESTS {
+        for t in GARBAGE_TESTS {
             let node = parse(t.source);
-            assert_eq!(garbage_len(&node), t.score, "in {} {:?}", t.source, node);
+            assert_eq!(garbage_len(&node), t.length, "in {} {:?}", t.source, node);
         }
     }
 
-    const GARBAGE_TESTS: &'static [&'static str] = &[
-        "<random characters>",
-        "<<<<>",
-        "<{!>}>",
-        "<!!>",
-        "<!!!>>",
-        "<{o\"i!a,<{i<a>",
+    struct GarbageTest {
+        source: &'static str,
+        length: usize,
+    }
+
+    const GARBAGE_TESTS: &'static [GarbageTest] = &[
+        GarbageTest { source: "<>", length: 0 },
+        GarbageTest { source: "<random characters>", length: 17 },
+        GarbageTest { source: "<<<<>", length: 3 },
+        GarbageTest { source: "<{!>}>", length: 2 },
+        GarbageTest { source: "<!!>", length: 0 },
+        GarbageTest { source: "<!!!>>", length: 0 },
+        GarbageTest { source: "<{o\"i!a,<{i<a>", length: 10 },
     ];
 
     struct GroupTest {
@@ -174,15 +183,4 @@ mod tests {
         ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
         ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
         ScoreTest { source: "{{<a!>},{<a!>},{<a!>},{<ab>}}", score: /* 1 + 2 = */ 3 },
-    ];
-
-    const GARBAGE_LEN_TESTS: &'static [ScoreTest] = &[
-        ScoreTest { source: "<>", score: 0 },
-        ScoreTest { source: "<random characters>", score: 17 },
-        ScoreTest { source: "<<<<>", score: 3 },
-        ScoreTest { source: "<{!>}>", score: 2 },
-        ScoreTest { source: "<!!>", score: 0 },
-        ScoreTest { source: "<!!!>>", score: 0 },
-        ScoreTest { source: "<{o\"i!a,<{i<a>", score: 10 },
-    ];
-}
+    ];}
