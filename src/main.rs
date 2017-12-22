@@ -67,42 +67,42 @@ impl ParseError {
     }
 }
 
-fn garbage(iter: &mut std::str::Chars) -> AST {
+fn garbage(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
     let mut string = String::new();
     while let Some(c) = iter.next() {
         match c {
             '!' => match iter.next() {
                 Some(_) => (),
-                None => panic!("unexpected end of string after '!'")
+                None => return ParseError::result("unexpected end of string after '!'")
             },
-            '>' => return AST::Garbage(string),
+            '>' => return Ok(AST::Garbage(string)),
             _ => string.push(c)
         }
     }
-    panic!("invalid garbage string: unterminated '<'")
+    ParseError::result("unterminated '<'")
 }
 
-fn group(iter: &mut std::str::Chars) -> AST {
+fn group(iter: &mut std::str::Chars) -> Result<AST, ParseError> {
     let mut children = Vec::new();
     while let Some(c) = iter.next() {
         match c {
             // TODO DRY w/ parse
-            '<' => children.push(garbage(iter)),
-            '{' => children.push(group(iter)),
-            '}' => break,
+            '<' => children.push(garbage(iter)?),
+            '{' => children.push(group(iter)?),
+            '}' => return Ok(AST::Group(children)),
             _ => ()
         }
     }
-    return AST::Group(children)
+    ParseError::result("unterminated '{'")
 }
 
 fn parse(src: &str) -> Result<AST, ParseError> {
     let mut iter = src.chars();
-    return match iter.next() {
-        Some('<') => Ok(garbage(&mut iter)),
-        Some('{') => Ok(group(&mut iter)),
-        Some(c) => ParseError::format(format!("invalid string: expected '<' or '{{', found {:?}", c)),
-        None => ParseError::result("invalid string: expected non-empty string")
+    match iter.next() {
+        Some('<') => garbage(&mut iter),
+        Some('{') => group(&mut iter),
+        Some(c) => ParseError::format(format!("expected '<' or '{{', found {:?}", c)),
+        None => ParseError::result("expected non-empty string")
     }
 }
 
@@ -135,6 +135,15 @@ mod tests {
         const SYNTAX_ERROR_TESTS: &'static [&'static str] = &[
             "",
             "x",
+            "<",
+            "<!",
+            "<random characters",
+            "<random characters!>",
+            "{",
+            "{<",
+            "{<>",
+            "{<!>}",
+            "{{}",
         ];
         for s in SYNTAX_ERROR_TESTS {
             let result = parse(s);
@@ -206,7 +215,7 @@ mod tests {
         ScoreTest { source: "{}", score: 1 },
         ScoreTest { source: "{{{}}}", score: /* 1 + 2 + 3 = */ 6 },
         ScoreTest { source: "{{},{}}", score: /* 1 + 2 + 2 = */ 5 },
-        ScoreTest { source: "{{{},{},{{}}", score: /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16 },
+        ScoreTest { source: "{{{},{},{{}}}}", score: /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16 },
         ScoreTest { source: "{<a>,<a>,<a>,<a>}", score: 1 },
         ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
         ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
