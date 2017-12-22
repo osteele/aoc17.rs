@@ -169,7 +169,7 @@ mod tests {
     fn count_groups() {
         for t in GROUP_TESTS {
             let ast = parse(t.source).unwrap();
-            assert_eq!(ast.count_groups(), t.count, "in {}", t.source);
+            assert_eq!(ast.count_groups(), t.expect, "in {}", t.source);
         }
     }
 
@@ -177,7 +177,7 @@ mod tests {
     fn scores() {
         for t in SCORE_TESTS {
             let ast = parse(t.source).unwrap();
-            assert_eq!(ast.score(), t.score, "in {} {:?}", t.source, ast);
+            assert_eq!(ast.score(), t.expect, "in {} {:?}", t.source, ast);
         }
     }
 
@@ -185,54 +185,53 @@ mod tests {
     fn garbage_len() {
         for t in GARBAGE_TESTS {
             let ast = parse(t.source).unwrap();
-            assert_eq!(ast.garbage_len(), t.length, "in {} {:?}", t.source, ast);
+            assert_eq!(ast.garbage_len(), t.expect, "in {} {:?}", t.source, ast);
         }
     }
 
-    struct GarbageTest {
-        source: &'static str,
-        length: usize,
+    struct TestCase<T, U> { source: T, expect: U}
+
+    macro_rules! define_tests {
+        (const $name:ident = < $et:tt > { $($e:expr => $v:expr),+ $(,)* }) => {
+            const $name: &'static [TestCase<&'static str, $et>] = &[
+                $(TestCase { source: $e, expect: $v }),*
+            ];
+        };
     }
 
-    const GARBAGE_TESTS: &'static [GarbageTest] = &[
-        GarbageTest { source: "<>", length: 0 },
-        GarbageTest { source: "<random characters>", length: 17 },
-        GarbageTest { source: "<<<<>", length: 3 },
-        GarbageTest { source: "<{!>}>", length: 2 },
-        GarbageTest { source: "<!!>", length: 0 },
-        GarbageTest { source: "<!!!>>", length: 0 },
-        GarbageTest { source: "<{o\"i!a,<{i<a>", length: 10 },
-    ];
-
-    struct GroupTest {
-        source: &'static str,
-        count: usize,
+    define_tests! {
+        const GARBAGE_TESTS = <usize>{
+            "<>" => 0,
+            "<random characters>" => 17,
+            "<<<<>" => 3,
+            "<{!>}>" => 2,
+            "<!!>" => 0,
+            "<!!!>>" => 0,
+            "<{o\"i!a,<{i<a>" => 10,
+        }
     }
 
+    type GroupTest = TestCase<&'static str, usize>;
     const GROUP_TESTS: &'static [GroupTest] = &[
-        GroupTest { source: "{}", count: 1 },
-        GroupTest { source: "{{{}}}", count: 3 },
-        GroupTest { source: "{{},{}}", count: 3 },
-        GroupTest { source: "{{{},{},{{}}}}", count: 6 },
-        GroupTest { source: "{<{},{},{{}}>}", count: 1 },
-        GroupTest { source: "{<a>,<a>,<a>,<a>}", count: 1 },
-        GroupTest { source: "{{<a>},{<a>},{<a>},{<a>}}", count: 5 },
-        GroupTest { source: "{{<!>},{<!>},{<!>},{<a>}}", count: 2 },
+        GroupTest { source: "{}", expect: 1 },
+        GroupTest { source: "{{{}}}", expect: 3 },
+        GroupTest { source: "{{},{}}", expect: 3 },
+        GroupTest { source: "{{{},{},{{}}}}", expect: 6 },
+        GroupTest { source: "{<{},{},{{}}>}", expect: 1 },
+        GroupTest { source: "{<a>,<a>,<a>,<a>}", expect: 1 },
+        GroupTest { source: "{{<a>},{<a>},{<a>},{<a>}}", expect: 5 },
+        GroupTest { source: "{{<!>},{<!>},{<!>},{<a>}}", expect: 2 },
     ];
 
-    struct ScoreTest {
-        source: &'static str,
-        score: usize,
-    }
-
+    type ScoreTest = TestCase<&'static str, usize>;
     const SCORE_TESTS: &'static [ScoreTest] = &[
-        ScoreTest { source: "{}", score: 1 },
-        ScoreTest { source: "{{{}}}", score: /* 1 + 2 + 3 = */ 6 },
-        ScoreTest { source: "{{},{}}", score: /* 1 + 2 + 2 = */ 5 },
-        ScoreTest { source: "{{{},{},{{}}}}", score: /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16 },
-        ScoreTest { source: "{<a>,<a>,<a>,<a>}", score: 1 },
-        ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
-        ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", score: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
-        ScoreTest { source: "{{<a!>},{<a!>},{<a!>},{<ab>}}", score: /* 1 + 2 = */ 3 },
+        ScoreTest { source: "{}", expect: 1 },
+        ScoreTest { source: "{{{}}}", expect: /* 1 + 2 + 3 = */ 6 },
+        ScoreTest { source: "{{},{}}", expect: /* 1 + 2 + 2 = */ 5 },
+        ScoreTest { source: "{{{},{},{{}}}}", expect: /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16 },
+        ScoreTest { source: "{<a>,<a>,<a>,<a>}", expect: 1 },
+        ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", expect: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
+        ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", expect: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
+        ScoreTest { source: "{{<a!>},{<a!>},{<a!>},{<ab>}}", expect: /* 1 + 2 = */ 3 },
     ];
 }
