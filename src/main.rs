@@ -191,7 +191,7 @@ mod tests {
 
     struct TestCase<T, U> { source: T, expect: U}
 
-    macro_rules! define_tests {
+    macro_rules! define_test_data {
         (const $name:ident = < $et:tt > { $($e:expr => $v:expr),+ $(,)* }) => {
             const $name: &'static [TestCase<&'static str, $et>] = &[
                 $(TestCase { source: $e, expect: $v }),*
@@ -199,7 +199,7 @@ mod tests {
         };
     }
 
-    define_tests! {
+    define_test_data! {
         const GARBAGE_TESTS = <usize>{
             "<>" => 0,
             "<random characters>" => 17,
@@ -211,27 +211,29 @@ mod tests {
         }
     }
 
-    type GroupTest = TestCase<&'static str, usize>;
-    const GROUP_TESTS: &'static [GroupTest] = &[
-        GroupTest { source: "{}", expect: 1 },
-        GroupTest { source: "{{{}}}", expect: 3 },
-        GroupTest { source: "{{},{}}", expect: 3 },
-        GroupTest { source: "{{{},{},{{}}}}", expect: 6 },
-        GroupTest { source: "{<{},{},{{}}>}", expect: 1 },
-        GroupTest { source: "{<a>,<a>,<a>,<a>}", expect: 1 },
-        GroupTest { source: "{{<a>},{<a>},{<a>},{<a>}}", expect: 5 },
-        GroupTest { source: "{{<!>},{<!>},{<!>},{<a>}}", expect: 2 },
-    ];
+    define_test_data! {
+        const GROUP_TESTS = <usize>{
+            "{}" => 1,
+            "{{{}}}" => 3,
+            "{{},{}}" => 3,
+            "{{{},{},{{}}}}" => 6,
+            "{<{},{},{{}}>}" => 1,
+            "{<a>,<a>,<a>,<a>}" => 1,
+            "{{<a>},{<a>},{<a>},{<a>}}" => 5,
+            "{{<!>},{<!>},{<!>},{<a>}}" => 2,
+        }
+    }
 
-    type ScoreTest = TestCase<&'static str, usize>;
-    const SCORE_TESTS: &'static [ScoreTest] = &[
-        ScoreTest { source: "{}", expect: 1 },
-        ScoreTest { source: "{{{}}}", expect: /* 1 + 2 + 3 = */ 6 },
-        ScoreTest { source: "{{},{}}", expect: /* 1 + 2 + 2 = */ 5 },
-        ScoreTest { source: "{{{},{},{{}}}}", expect: /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16 },
-        ScoreTest { source: "{<a>,<a>,<a>,<a>}", expect: 1 },
-        ScoreTest { source: "{{<ab>},{<ab>},{<ab>},{<ab>}}", expect: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
-        ScoreTest { source: "{{<!!>},{<!!>},{<!!>},{<!!>}}", expect: /* 1 + 2 + 2 + 2 + 2 = */ 9 },
-        ScoreTest { source: "{{<a!>},{<a!>},{<a!>},{<ab>}}", expect: /* 1 + 2 = */ 3 },
-    ];
+    define_test_data! {
+        const SCORE_TESTS = <usize>{
+            "{}" => 1,
+            "{{{}}}" => /* 1 + 2 + 3 = */ 6,
+            "{{},{}}" => /* 1 + 2 + 2 = */ 5,
+            "{{{},{},{{}}}}" => /* 1 + 2 + 3 + 3 + 3 + 4 = */ 16,
+            "{<a>,<a>,<a>,<a>}" => 1,
+            "{{<ab>},{<ab>},{<ab>},{<ab>}}" => /* 1 + 2 + 2 + 2 + 2 = */ 9,
+            "{{<!!>},{<!!>},{<!!>},{<!!>}}" => /* 1 + 2 + 2 + 2 + 2 = */ 9,
+            "{{<a!>},{<a!>},{<a!>},{<ab>}}" => /* 1 + 2 = */ 3,
+        }
+    }
 }
